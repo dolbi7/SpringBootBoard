@@ -1,0 +1,131 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper
+  PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+  "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+  
+<mapper namespace="com.shop.mapper.MasterMapper">
+
+<!-- 상품 등록 -->
+<insert id="pRegistry" parameterType="com.shop.dto.ProductDTO">
+	insert into tbl_product (p_id,p_name,p_manufacturer,p_price,p_stock,p_description,p_org_image,p_stored_image,p_regdate,p_status)   
+		values (tbl_product_seq.nextval,#{p_name},#{p_manufacturer},#{p_price},#{p_stock},#{p_description},
+			#{p_org_image},#{p_stored_image},sysdate,'O')
+</insert>
+
+<!-- 상품 수정 -->
+<update id="pModify" parameterType="com.shop.dto.ProductDTO">
+	update tbl_product set p_name = #{p_name},p_manufacturer = #{p_manufacturer},p_price = #{p_price},p_stock = #{p_stock},
+		p_description = #{p_description},p_org_image = #{p_org_image}, p_stored_image = #{p_stored_image},
+			p_status = #{p_status} where p_id = #{p_id} 
+</update>
+
+<!-- 상품 목록 보기 -->
+<select id="pList" parameterType="java.util.HashMap" resultType="com.shop.dto.ProductDTO">
+	select rnum seq,p_id,p_name,p_manufacturer,p_price,p_stock,p_description,p_org_image,p_stored_image,p_regdate,p_status from  
+	( select p_id,p_name,p_manufacturer,p_price,p_stock,p_description,p_org_image,p_stored_image,
+		to_char(p_regdate,'YYYY-MM-DD HH24:MI:SS') as p_regdate, p_status, 
+		row_number() over(order by p_id desc) as rnum from tbl_product   
+		where p_name like '%'||#{keyword}||'%' or p_manufacturer like '%'||#{keyword}||'%' 
+    ) product where rnum between #{startPoint} and #{endPoint} order by p_id desc
+</select>
+
+<!-- 전체 상품 목록 수 계산-->
+<select id="p_totalCount" parameterType="string" resultType="int">
+	select count(*) from tbl_product where p_name like '%'||#{keyword}||'%' or p_manufacturer like '%'||#{keyword}||'%'
+</select> 
+
+<!-- 상품 상세 정보 보기 -->
+<select id="pView" parameterType="int" resultType="com.shop.dto.ProductDTO">
+	select p_id,p_name,p_manufacturer,p_price,p_stock,p_org_image,p_stored_image,p_description,p_regdate,p_status 
+		from tbl_product where p_id=#{p_id}
+</select>
+
+<!-- 주문 내역 보기 -->
+<select id="pOrderInfoList" parameterType="java.util.HashMap" resultType="com.shop.dto.OrderInfoDTO">
+select rnum seq,order_id,order_regdate,order_email,order_name,p_name,order_quantity,order_amount,order_status,order_status_name from 
+		( select a.order_id order_id, a.order_regdate order_regdate, 
+			a.order_email order_email, a.order_name order_name, a.p_name p_name, a.order_quantity order_quantity, a.order_amount order_amount, 
+				a.order_status order_status, b.order_status_name order_status_name, row_number() over(order by order_regdate desc) as rnum from tbl_order_info a,  
+					tbl_order_status b where a.order_status = b.order_status_id 
+						and (a.order_name like '%'||#{keyword}||'%' or a.order_id like '%'||#{keyword}||'%') ) order_history  
+							where rnum between #{startPoint} and #{endPoint} order by order_regdate desc
+</select>
+
+<!-- 전체 주문 갯수 계산 -->
+<select id="pOrderTotalCount" resultType="int">
+	select count(*) from tbl_order_info where order_name like '%'||#{keyword}||'%' or order_id like '%'||#{keyword}||'%'
+</select>
+
+<!-- 주문서 내역에서 주문서 볼때 상품 목록 보기 -->
+<select id="invoiceView" parameterType="string" resultType="com.shop.dto.OrderDTO">
+	select a.p_stored_image p_stored_image, a.p_name p_name, a.p_manufacturer p_manufacturer, b.order_price order_price, 
+		b.order_quantity order_quantity,(b.order_quantity*b.order_price) order_amount from tbl_product a, tbl_order_info_product b 
+			where a.p_id = b.p_id and b.order_id = #{invoice} order by b.p_id desc
+</select>
+
+<!-- 주문 내역에서 주문서 볼때 받는 사람 정보 가져 오기 -->
+<select id="pOrderInfoRVView" parameterType="string" resultType="com.shop.dto.OrderInfoAddrDTO">
+	select rv_name, rv_zipcode, rv_address, rv_telno, rv_email from tbl_order_info where order_id = #{order_id}
+</select>
+
+<!-- 주문 상태 목록 보기 -->
+<select id="pOrderStatusList" resultType="com.shop.dto.OrderInfoDTO">
+	select order_status_id,order_status_name from tbl_order_status where order_status_id between '02' and '09' order by order_status_id
+</select>
+
+<!-- 주문 상태 변경(tbl_order) -->
+<update id="pOrderUpdateOrder" parameterType="com.shop.dto.OrderDTO">
+	update tbl_order set order_status = #{order_status} where order_id = #{order_id}
+</update>
+
+<!-- 주문 상태 변경(tbl_order_info) -->
+<update id="pOrderUpdateOrderInfo" parameterType="com.shop.dto.OrderDTO">
+	update tbl_order_info set order_status = #{order_status} where order_id = #{order_id}
+</update>
+
+<!-- 회원관리 -->
+<select id="pCustomer" parameterType="java.util.HashMap" resultType="com.shop.dto.MemberDTO">
+	select rnum, username, email, zipcode, address, telno, regdate, order_count, order_pay_count, order_amount from 
+	( select a.username,a.email,a.zipcode,a.address,a.telno,a.regdate,
+    	(select count(*) from tbl_order_info where order_email = a.email) as order_count,
+    		(select count(*) from tbl_order_info where order_email = a.email and order_status = '05') as order_pay_count,
+	    		(select nvl(sum(order_amount),'0') from tbl_order_info where order_email = a.email and order_status = '05') as order_amount,
+	    			row_number() over(order by a.username) as rnum
+	    				from tbl_member a where a.role = 'USER' and (a.username like '%'||#{keyword}||'%' or 
+	    					a.address like '%'||#{keyword}||'%' or a.telno like '%'||#{keyword}||'%' )) customer  
+	    						where rnum between #{startPoint} and #{endPoint} order by username
+</select>
+
+<!-- 회원 전체 수 계산 -->
+<select id="pCustomerTotalCount" parameterType="com.shop.dto.MemberDTO" resultType="int">
+	select count(*) from tbl_member where role = 'USER' and ( username like '%'||#{keyword}||'%' 
+		or address like '%'||#{keyword}||'%' or telno like '%'||#{keyword}||'%' ) 
+</select>
+
+<!-- 매출 발생 연도 출력 -->
+<select id="pAvenueYear" resultType="string">
+	select distinct(to_char(order_regdate,'YYYY')) as year from tbl_order_info
+</select>
+
+<!-- 매출 발생 일 목록 출력 -->
+<select id="pAvenueDayList" parameterType="string" resultType="string" >
+	select distinct(to_char(order_regdate,'YYYYMMDD')) as day from tbl_order_info 
+		where to_char(order_regdate,'YYYYMM') = #{yyyymm} 
+</select>
+
+<!-- 월/일 단위 매출 계산 -->
+<select id="pAvenueDay" parameterType="string"  resultType="com.shop.dto.AvenueDTO">
+	select c.customer_no customer_no, a.product_no product_no, c.order_no order_no,b.confirm_no confirm_no,
+		a.order_amount order_amount, a.customer_amount customer_amount from
+	      (select sum(order_quantity) as product_no,
+	        sum(order_amount) as order_amount,
+	        sum(order_amount)/count(distinct(order_email)) as customer_amount
+	        from tbl_order_info 
+			where to_char(order_regdate,'YYYYMMDD') = #{yyyymmdd} and order_status = '05') a,
+	        (select count(order_id) as confirm_no from tbl_order_info 
+	        	where order_status = '05' and to_char(order_regdate,'YYYYMMDD') = #{yyyymmdd}) b,
+	        (select count(order_id) as order_no,count(distinct(order_email)) as customer_no from tbl_order_info 
+	        	where to_char(order_regdate,'YYYYMMDD') = #{yyyymmdd}) c	
+</select> 
+
+</mapper>

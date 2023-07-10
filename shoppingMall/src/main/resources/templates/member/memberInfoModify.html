@@ -1,0 +1,213 @@
+<!DOCTYPE html>
+<html lang="ko" xmlns:th="http://www.thymeleaf.org"
+				xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>쇼핑몰</title>
+<link rel="stylesheet" type="text/css" href="/css/shopHeader.css">
+
+<style>
+
+#imageZone {
+  border: 2px solid #92AAB0;
+  width: 450px;
+  height: auto;
+  color: #92AAB0;
+  text-align: center;
+  vertical-align: middle;
+  margin: auto;
+  padding: 10px 10px;
+  font-size:150%;
+  
+}
+
+.modifyForm {
+  width:60%;
+  height:auto;
+  margin:auto;
+  padding: 10px, 10px;
+  background-color:#FFFFFF;
+  border:1px solid gray;
+  border-radius: 10px;
+}
+
+.c_info {
+  width: 80%;
+  border:none;
+  border-bottom: 2px solid #adadad;
+  margin: 5px;
+  padding: 10px 10px;
+  outline:none;
+  color: #636e72;
+  font-size:16px;
+  height:25px;
+  background: none;
+}
+
+.c_infoNames {
+  width: 80px;
+  height: 20px;
+  margin: 5px;
+  padding: 10px 10px;
+  color:  #168;
+  font-size:16px;
+  font-weight: bold; 
+  background: #f0f6f9;
+  display:inline-block;
+}
+
+#btn_addrSearch {
+  width: 100px;
+  height: 20px;
+  font-size:16px;
+  font-weight: bold;
+  height:40px;
+  background: #168;
+  color: white;
+  display:inline-block;
+  border: none;
+  cursor: pointer;
+}
+
+#btn_modify  {
+  position:relative;
+  left:20%;
+  transform: translateX(-50%);
+  margin-top: 20px;
+  margin-bottom: 10px;
+  width:40%;
+  height:40px;
+  background: #168;
+  background-position: left;
+  background-size: 200%;
+  color:white;
+  font-weight: bold;
+  border:none;
+  cursor:pointer;
+  transition: 0.4s;
+  display:inline;
+}
+
+#btn_cancel  {
+  position:relative;
+  left:20%;
+  transform: translateX(-50%);
+  margin-top: 20px;
+  margin-bottom: 10px;
+  width:40%;
+  height:40px;
+  background: #163;
+  background-position: left;
+  background-size: 200%;
+  color:white;
+  font-weight: bold;
+  border:none;
+  cursor:pointer;
+  transition: 0.4s;
+  display:inline;
+}
+
+</style>
+
+<script>
+
+	window.addEventListener('load', (event) => {
+		
+		const btnModify = document.querySelector('#btn_modify');
+		const btnAddrSearch = document.querySelector('#btn_addrSearch');
+		
+		btnModify.addEventListener('click', (e) => {
+			
+		 	if(telno.value == '') { alert("전화번호를 입력하세요."); telno.focus(); return false; }
+		 				
+			let mForm = document.getElementById('modifyForm');
+			
+			mForm.zipcode.value = mForm.zip.value;
+			mForm.address.value = mForm.addr1.value + ' ' + mForm.addr2.value;
+			
+			let formData = new FormData(mForm);
+			
+			fetch('/member/memberInfoModify',{
+				method : 'POST',
+				body : formData
+			}).then((response) => response.text())
+			  .then((data) => {
+				 if(data == 'good'){
+					 alert("회원정보가 수정 되었습니다.");
+					 document.location.href='/member/memberInfoView?email=[[${member.email}]]';
+				 } else {
+					 alert("시스템 장애로 회원정보 수정이 실패 했습니다.")
+				 }			  
+		    }).catch((error)=> console.log("error = ") + error);
+	   });
+		
+		btnAddrSearch.addEventListener('click', (event) => {
+			
+			if(addrSearch.value == '') {
+				alert("검색할 주소를 입력하세요.");
+				addrSearch.focus();
+				return false;
+			}
+
+			window.open(
+			          "/member/addrSearch?page=1&addrSearch=" + addrSearch.value,
+			          "주소검색",
+			          "width=800, height=500, top=50, left=50"
+			);
+		});
+	
+	});	
+	
+</script>
+<script src="/js/logout.js"></script>
+
+</head>
+<body>
+
+<!-- 로그인 여부 확인 -->
+<script>
+	let email = '[[${session.email}]]';
+	if(email == '' || email == null || email == undefined)
+		document.location.href = '/member/login';
+</script>
+
+<div class="top_menu">
+	<th:block th:replace="~{layout/shopHeader::header}"></th:block>
+</div>
+
+<div class="mall">
+
+	<div class="main_shop">
+	  	<div class="modifyForm">
+		    <h1>회원정보 수정</h1>
+		 
+		    <form name="modifyForm" id="modifyForm" method="post">
+		    	<br><span class="c_infoNames">이메일</span>
+		        	<input type="text" id="email" class="c_info" th:value="${member.email}" disabled>
+		        	<input type="hidden" name="email" th:value="${member.email}">
+		        <br><span class="c_infoNames">이름</span>
+		        	<input type="text" id="username" class="c_info" th:value="${member.username}" disabled>
+		      	<br><input type="button" id="btn_addrSearch" value="주소검색">
+		      		<input type="text" id="addrSearch" name="addrSearch" class="c_info" placeholder="검색할 주소를 입력한 후 주소검색 버튼을 클릭하세요.">	
+		        <br><span class="c_infoNames">우편번호</span>  	
+			    	<input type="text" id="zip" name="zip" class="c_info" th:value="${member.zipcode}" disabled>
+			    	<input type="hidden" name="zipcode" >
+			    <br><span class="c_infoNames">도로명주소</span>  	
+			    	<input type="text" id="addr1" name="addr1" class="c_info" th:value="${member.address}" disabled>
+			    <br><span class="c_infoNames">상세주소</span>  	
+			    	<input type="text" id="addr2" name="addr2" class="c_info">
+			    	<input type="hidden" name="address" value="">			    	
+			    <br><span class="c_infoNames">전화번호</span>	
+		        	<input type="text" id="telno" name="telno" class="c_info" th:value="${member.telno}">
+		        <input type="button" id="btn_modify" value="회원정보 수정">
+		        <input type="button" id="btn_cancel" value="취소" onclick="history.back()">
+			</form>
+		</div>
+    </div>
+</div>
+
+<br><br>
+
+</body>
+</html>

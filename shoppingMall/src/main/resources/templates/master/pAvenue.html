@@ -1,0 +1,178 @@
+<!DOCTYPE html>
+<html lang="ko" xmlns:th="http://www.thymeleaf.org"
+				xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout">
+<head>
+<meta charset="UTF-8">
+<title>회원 관리</title>
+<link rel="stylesheet" type="text/css" href="/css/masterHeader.css">
+
+<style>
+
+.tableDiv {
+	text-align: center;
+}
+
+.InfoTable {
+	border-collapse: collapse;
+	border-top: 3px solid #168;
+	width: 88%;  
+	margin-left: auto; margin-right: auto;
+}  
+.InfoTable th {
+	color: #168;
+	background: #f0f6f9;
+	text-align: center;
+}
+.InfoTable th, .InfoTable td {
+	padding: 10px;
+	border: 1px solid #ddd;
+}
+.InfoTable th:first-child, .InfoTable td:first-child {
+	border-left: 0;
+}
+.InfoTable th:last-child, .InfoTable td:last-child {
+	border-right: 0;
+}
+.InfoTable tr td:first-child{
+	text-align: center;
+}
+
+</style>
+
+<script>
+
+	const getYYYYMM = () => {
+		
+		const yearSelect = document.getElementById('year');
+		const monthSelect = document.getElementById('month');
+		
+		const year = yearSelect.options[yearSelect.selectedIndex].value;
+		const month = monthSelect.options[monthSelect.selectedIndex].value;
+					
+		document.location.href='/master/pAvenue?yyyy=' + year + '&mm=' + month; 
+
+	}
+
+	const cal_total = () => {
+		
+		let tCustomer_no = 0;
+		let tProduct_no = 0;
+		let tOrder_no = 0;
+		let tConfirm_no = 0;
+		let tCustomer_amount = 0;
+		let tOrder_amount = 0;
+		
+		let customer_no = document.querySelectorAll('.customer_no');
+		let product_no = document.querySelectorAll('.product_no');
+		let order_no = document.querySelectorAll('.order_no');
+		let confirm_no = document.querySelectorAll('.confirm_no');
+		let customer_amount = document.querySelectorAll('.customer_amount');
+		let order_amount = document.querySelectorAll('.order_amount');
+		
+		let tCount = document.querySelectorAll('.day');
+		
+		for(let i=0; i< tCount.length; i++){
+			
+			tCustomer_no += parseInt(customer_no[i].innerHTML.replace(/,/g, ""));
+			tProduct_no += parseInt(product_no[i].innerHTML.replace(/,/g, ""));
+			tOrder_no += parseInt(order_no[i].innerHTML.replace(/,/g, ""));
+			tConfirm_no += parseInt(confirm_no[i].innerHTML.replace(/,/g, ""));
+			tOrder_amount += parseInt(order_amount[i].innerHTML.replace(/,/g, ""));
+			tCustomer_amount += parseInt(customer_amount[i].innerHTML.replace(/,/g, ""));
+			
+		}
+		
+		document.getElementById('tCustomer_no').innerHTML = tCustomer_no.toLocaleString('ko-KR');
+		document.getElementById('tProduct_no').innerHTML = tProduct_no.toLocaleString('ko-KR');
+		document.getElementById('tOrder_no').innerHTML = tOrder_no.toLocaleString('ko-KR');
+		document.getElementById('tConfirm_no').innerHTML = tConfirm_no.toLocaleString('ko-KR');
+		document.getElementById('tOrder_amount').innerHTML = tOrder_amount.toLocaleString('ko-KR');
+		document.getElementById('tCustomer_amount').innerHTML = tCustomer_amount.toLocaleString('ko-KR');
+		
+		
+	}
+	
+</script>
+
+<script src="/js/logout.js"></script>
+
+</head>
+
+<body onload="cal_total()">
+
+<!-- 로그인 여부 확인 -->
+<script>
+	let email = '[[${session.email}]]';
+	if(email == '' || email == null || email == undefined)
+		document.location.href = '/member/login';
+</script>
+
+<div class="mall">
+
+	<div class="top_menu">
+		<th:block th:replace="~{layout/MasterHeader::header}"></th:block>
+	</div>
+
+	<br>
+	<div class="main_shop">
+		<div class="tableDiv">
+			<h1>매출 관리</h1>
+			<span style="position:relative; left: 490px;">연도 : </span>
+			<select id="year" style="position:relative; left: 490px;">
+				<option th:each="year: ${years}" th:value="${year}" th:text="${year}" th:selected="${year} ==${yyyy}">
+		   		</option>
+			</select>
+			<span style="position:relative; left: 500px;">월 : </span>
+			<select id="month" style="position:relative; left: 500px;" onchange="getYYYYMM()">
+				<option th:each="month: ${months}" th:value="${month}" th:text="${month}" th:selected="${month} ==${mm}">
+		   		</option>
+			</select>
+			<br><br>
+			<table class="InfoTable">
+				<tr>
+		   			<th>날짜</th>
+		   			<th>주문고객</th>
+		   			<th>상품판매</th>
+		   			<th>주문</th>
+		   			<th>확정</th>
+		   			<th>객단가</th>
+		   			<th>판매금액</th>		   			
+		  		</tr>
+		 		<tbody>
+		  			<tr th:each= "avenue: ${avenue}">
+		  				<td><span th:text="${avenue.day}" class="day"></span></td>
+		  				<td><span th:text="${avenue.customer_no}" class="customer_no"></span></td>
+		  				<td><span th:text="${avenue.product_no}" class="product_no"></span></td> 
+		  				<td><span th:text="${avenue.order_no}" class="order_no"></span></td>
+		  				<td><span th:text="${avenue.confirm_no}" class="confirm_no"></span></td>
+		  				<th:bock th:if="${avenue.customer_amount gt 999}">
+		  					<td style="text-align:right"><span th:text="${#numbers.formatInteger(avenue.customer_amount,3,'COMMA')}" class="customer_amount"></span></td> 
+		  				</th:bock>
+		  				<th:bock th:if="${avenue.customer_amount lt 1000}">
+		  					<td style="text-align:right"><span th:text="${avenue.customer_amount}" class="customer_amount"></span></td> 
+		  				</th:bock>
+		  				<th:bock th:if="${avenue.order_amount gt 999}">	
+		  					<td style="text-align:right"><span th:text="${#numbers.formatInteger(avenue.order_amount,3,'COMMA')}" class="order_amount"></span></td>
+		  				</th:bock>
+		  				<th:bock th:if="${avenue.order_amount lt 1000}">	
+		  					<td style="text-align:right"><span th:text="${avenue.order_amount}" class="order_amount"></span></td>
+		  				</th:bock>		  							  				
+		 			</tr>
+		 			<tr>
+		  				<td>합계</td> 
+		  				<td><span id="tCustomer_no"></span></td>
+		  				<td><span id="tProduct_no"></span></td>
+		  				<td><span id="tOrder_no"></span></td> 
+		  				<td><span id="tConfirm_no"></span></td>
+		  				<td style="text-align:right"><span id="tCustomer_amount"></span></td>
+		  				<td style="text-align:right"><span id="tOrder_amount"></span></td>		  				
+		 			</tr> 
+		 		</tbody>
+			</table>			
+		<br><br>
+		</div>
+	</div>
+</div>
+</body>
+</html>
+

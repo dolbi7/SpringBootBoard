@@ -1,0 +1,152 @@
+<!DOCTYPE html>
+<html lang="ko" xmlns:th="http://www.thymeleaf.org"
+				xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout">
+<head>
+<meta charset="UTF-8">
+<title>쇼핑몰</title>
+<link rel="stylesheet" type="text/css" href="/css/masterHeader.css">
+
+<style>
+
+.tableDiv {
+	text-align: center;
+}
+
+.InfoTable {
+      border-collapse: collapse;
+      width: 80%;  
+      margin-left: auto;
+      margin-right: auto;
+    }  
+    .InfoTable th {
+      border-bottom: 3px solid #168;
+      color: #168;
+      background: #f0f6f9;
+      text-align: left;
+    }
+    .InfoTable th, .InfoTable td {
+      padding: 10px;
+      border: 1px solid #ddd;
+    }
+    .InfoTable th:first-child, .InfoTable td:first-child {
+      border-left: 0;
+    }
+    .InfoTable th:last-child, .InfoTable td:last-child {
+      border-right: 0;
+    }
+    .InfoTable tr td:first-child{
+      text-align: left;
+    }
+    .InfoTable caption{caption-side: top; }
+
+.p_image {
+       max-width: 30%;
+       height: auto;
+       display: block; 
+       margin: auto;
+}
+
+.btn_order  {
+  width:600px;
+  height:40px;
+  background: #168;
+  color:white;
+  font-weight: bold;
+  border:none;
+  cursor:pointer;
+
+}
+
+</style>
+<script>
+
+//전체 상품 가격 계산
+const cal_totalAmount = () => {
+	
+	let tAmount = 0;
+	let totalAmount = document.querySelectorAll('.invoiceAmount');
+	for(let amount of totalAmount){
+		
+		tAmount += parseInt(amount.innerHTML.replace(/,/g, ""));
+	}
+
+	tInvoiceAmount = tAmount.toLocaleString('ko-KR');
+	document.querySelector('#totalInvoiceAmount').innerHTML = tInvoiceAmount;
+
+}
+
+</script>
+
+<script src="/js/logout.js"></script>
+
+</head>
+<body onload="cal_totalAmount()">
+
+<!-- 로그인 여부 확인 -->
+<script>
+	let email = '[[${session.email}]]';
+	if(email == '' || email == null || email == undefined)
+		document.location.href = '/member/login';
+</script>
+
+<div class="mall">
+
+	<div class="top_menu">
+		<th:block th:replace="~{layout/MasterHeader::header}"></th:block>
+	</div>
+
+	<div class="main_shop">
+	
+		<h1>주문서</h1><br>
+		<div class="tableDiv">
+			<table class="InfoTable">
+		  		<tr>
+		   			<th colspan="6"><span>주문상품</span></th>
+		  		</tr>
+		
+		 		<tbody>
+					<tr th:each="list : ${list}">
+		  				<td><img class="p_image" th:src="@{'/p_img/' + ${list.p_stored_image}}" style="width:300px; height: auto"></td>
+		  				<td><span th:text="${list.p_name}"></span></td>
+		  				<td><span th:text="${list.p_manufacturer}"></span></td>
+		  				<td><span th:text="${#numbers.formatInteger(list.order_price,3,'COMMA')+'원'}"></span></td>
+		  				<td><span th:text="${list.order_quantity}"></span></td>		  				
+		  				<td><span class="invoiceAmount" th:text="${#numbers.formatInteger(list.order_amount,3,'COMMA')+'원'}"></span></td> 
+		 			</tr>
+		 			<tr>
+		 				<td colspan="3"></td>
+		 				<td colspan="3"><span style="text-align:right"><h2>합계 : <span id="totalInvoiceAmount" style="text-align:right"></span>원</h2></span></td>
+		 			</tr>
+				</tbody>
+			</table>
+		</div>
+		<br>
+		<div class="tableDiv">
+			<table class="InfoTable">
+		  		<tr>
+		   			<th><span>배송 정보</span></th>
+		  		</tr>
+		
+		 		<tbody>
+					<tr>
+		  				<td><span>받는분 : [[${member.rv_name}]]<span></span></span></td>
+		 			</tr>
+		 			<tr>
+		  				<td><span>휴대폰 : [[${member.rv_telno}]]<span></span></span></td>
+		 			</tr>
+		 			<tr>
+		  				<td><span>이메일 : [[${member.rv_email}]]<span></span></span></td>
+		 			</tr>
+		 			<tr>
+		  				<td><span>주소 : (<span>[[${member.rv_zipcode}]]</span>) <span>[[${member.rv_address}]]</span></span></td>
+		 			</tr>
+				</tbody>
+			</table>
+		</div>
+		<br>
+	</div>
+</div>	
+<br><br><br><br>
+</body>
+</html>
+

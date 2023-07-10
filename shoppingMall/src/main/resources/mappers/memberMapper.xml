@@ -1,0 +1,83 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper
+  PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+  "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+  
+<mapper namespace="com.shop.mapper.MemberMapper">
+
+<!-- 사용자 정보 등록 -->
+<insert id="memberInfoRegistry" parameterType="com.shop.dto.MemberDTO">
+
+insert into tbl_member (email,username,password,telno,regdate,role,zipcode,address)  
+	values (#{email},#{username},#{password},#{telno},sysdate,'USER',#{zipcode},#{address})
+
+</insert>
+
+<!-- ID 확인 -->
+<select id="idCheck" parameterType="string" resultType="int">
+	select count(*) from tbl_member where email = #{email}
+</select>
+
+<!-- 로그인 시 필요한 회원 정보 가져 오기-->
+<select id="login" parameterType="string" resultType="com.shop.dto.MemberDTO">
+    select email, username, password, role, authKey from tbl_member where email = #{email}
+</select>
+
+<!-- authKey 등록 -->
+<update id="memberInfoUpdateAuthkey" parameterType="com.shop.dto.MemberDTO">
+	update tbl_member set authKey = #{authKey} where email = #{email}
+</update>
+
+<!-- authKey 확인 -->
+<select id="memberInfoAuthKeyValidate" parameterType="string" resultType="int">
+	select count(email) from tbl_member where authkey = #{authKey}
+</select>
+
+<!-- authKey를 이용하여 사용자 정보 가져 오기 -->
+<select id="memberInfoViewByAuthKey" parameterType="string" resultType="com.shop.dto.MemberDTO">
+	select email,username,role,authKey from tbl_member where authkey = #{authKey}
+</select>
+
+<!-- 회원 로그인/로그아웃 정보 등록-->
+<insert id="memberInfoConnection" parameterType="com.shop.dto.MemberLogDTO">
+	insert into tbl_member_log (log_id,email,log_status,log_regdate) values (
+		tbl_member_log_seq.nextval, #{email}, #{log_status}, sysdate)	
+</insert>
+
+<!-- 회원정보 보기 -->
+<select id="memberInfoView" parameterType="string" resultType="com.shop.dto.MemberDTO">
+	select email, password, username, zipcode, address, telno, regdate, role,
+			(select nvl(max(log_regdate),'') from tbl_member_log where email = #{email} and log_status = 'login') as login_status,
+			(select nvl(max(log_regdate),'') from tbl_member_log where email = #{email} and log_status = 'logout') as logout_status    
+				from tbl_member where email = #{email}
+</select>
+
+<!-- 회원 정보 수정 -->
+<update id="memberInfoModify" parameterType="com.shop.dto.MemberDTO">
+	update tbl_member set telno=#{telno}, zipcode=#{zipcode},
+		address=#{address} where email=#{email}
+</update>
+
+<!-- 회원 패스워드 수정 -->
+<update id="memberInfoPasswordModify" parameterType="com.shop.dto.MemberDTO">
+	update tbl_member set password=#{password} where email=#{email}
+</update>
+
+<!-- 우편번호 행 최대 갯수 계산 -->
+<select id="addrTotalCount" parameterType="string" resultType="int">
+	select count(*) from tbl_addr where road like '%'||#{addSearch}||'%'
+		or building like '%'||#{addrSearch}||'%'
+</select>
+
+<!-- 우편번호 검색 -->
+<select id="addrSearch" parameterType="java.util.HashMap" resultType="com.shop.dto.AddressDTO">
+
+	select zipcode, province, road, building, oldaddr from 
+	(select zipcode, province, road, building, oldaddr, row_number() over(order by zipcode) as rnum  
+	from tbl_addr where road like '%'||#{addrSearch}||'%' 
+	or building like '%'||#{addrSearch}||'%') addr 
+	where rnum between #{startPoint} and #{endPoint} order by zipcode
+
+</select>
+
+</mapper>

@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<html lang="ko" xmlns:th="http://www.thymeleaf.org"
+				 xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout">
+<head>
+<meta charset="UTF-8">
+<title>쇼핑몰</title>
+<link rel="stylesheet" type="text/css" href="/css/shopHeader.css">
+
+<style>
+
+.tableDiv {
+	text-align: center;
+}
+
+.InfoTable {
+      border-collapse: collapse;
+      border-top: 3px solid #168;
+      width: 87%;  
+      margin-left: auto; margin-right: auto;
+    }  
+    .InfoTable th {
+      color: #168;
+      background: #f0f6f9;
+      text-align: center;
+    }
+    .InfoTable th, .InfoTable td {
+      padding: 10px;
+      border: 1px solid #ddd;
+    }
+    .InfoTable th:first-child, .InfoTable td:first-child {
+      border-left: 0;
+    }
+    .InfoTable th:last-child, .InfoTable td:last-child {
+      border-right: 0;
+    }
+    .InfoTable tr td:first-child{
+      text-align: center;
+    }
+    .InfoTable caption{caption-side: top; }
+
+.p_image {
+       max-width: 30%;
+       height: auto;
+       display: block; 
+       margin: auto;
+}
+
+.keyword {
+  width: 50%;
+  height:30px;
+  border: 2px solid #168;
+  outline:none;
+  color: #168;
+  font-size:16px;
+  background: none;
+}
+
+.btn_search {
+
+  width:5%;
+  height:35px;
+  background: #168;
+  background-position: right;
+  color:white;
+  font-weight: bold;
+  border:none;
+  cursor:pointer;
+}
+
+</style>
+<script>
+
+	//상품 검색
+	const p_search = () => {
+		
+		var keyword =  document.getElementById('keyword').value;
+		location.href = '/shop/main?page=1&keyword=' + keyword;
+	}
+
+	//키보드 엔터 누르면 상품 검색 함수 실행
+	const press = () => {
+		
+		if(event.keyCode == 13) p_search(); 
+	
+	}
+	
+</script>
+
+<script src="/js/logout.js"></script>
+
+</head>
+<body>
+
+<div class="mall">
+
+	<div class="top_menu">
+		<th:block th:replace="~{layout/shopHeader::header}"></th:block>
+	</div>
+	
+	<div class="main_shop">
+	
+		<div>
+    		<input type="text" id="keyword" class="keyword" name="keyword" onkeydown="press()" placeholder="상품명 또는 제조사를 입력하여 검색하세요.">
+  			<button type="button" class="btn_search" onclick="p_search()">검색</button>
+ 		</div>
+		<br><br>
+		<div class="tableDiv">
+			<table class="InfoTable">
+		  		<tr>
+		   			<th>번호</th>
+		   			<th>상품이미지</th>
+		   			<th>상품명</th>
+		   			<th>제조사</th>
+		   			<th>가격</th>
+		   			<th>등록일</th>
+		  		</tr>
+		
+		 		<tbody>
+					<tr th:each="list : ${list}">
+		  				<td><span th:text="${list.seq}"></span></td>
+		  				<td><img class="p_image" th:src="@{'/p_img/' + ${list.p_stored_image}}" style="width:300px; height: auto"></td>
+		  				<td style="text-align:left;"><a id="hypertext" th:href="@{'/shop/pView?p_id=' + ${list.p_id} + '&page=' + ${page} + '&keyword=' + ${keyword} }" onMouseover='this.style.textDecoration="underline"'  
+		  						onmouseout="this.style.textDecoration='none';"><span th:text="${list.p_name}"></span></a></td>
+		  				<td><span th:text="${list.p_manufacturer}"></span></td>
+		  				<td><span th:text="${#numbers.formatInteger(list.p_price,3,'COMMA')+'원'}"></span></td>
+		  				<td><span th:text="${#temporals.format(list.p_regdate,'yyyy-MM-dd')}"></span></td> 
+		 			</tr>
+				</tbody>
+		
+			</table>
+			<br>	
+			<div>[(${pageListView})]</div>
+		</div>
+
+	</div>
+	<br><br>
+</div>
+</body>
+</html>
+

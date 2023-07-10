@@ -1,0 +1,241 @@
+<!DOCTYPE html>
+<html lang="ko" xmlns:th="http://www.thymeleaf.org">
+<head>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>쇼핑몰</title>
+<link rel="stylesheet" type="text/css" href="/css/shopHeader.css">
+
+<style>
+
+.login_image {
+  width:40%;
+  height:auto;
+  margin:auto;
+  padding: 20px, 20px;
+  background-color:#FFFFFF;
+  text-align:center;
+  display:inline-block;
+}
+
+.login {
+  width:40%;
+  height:auto;
+  margin:auto;
+  padding: 20px, 20px;
+  background-color:#FFFFFF;
+  text-align:center;
+  border:1px solid gray;
+  border-radius: 20px;
+  display:inline-block;
+}   
+.items {
+  width: 80%;
+  border: none;
+  border-bottom: 2px solid #adadad;
+  outline:none;
+  color: #636e72;
+  font-size:16px;
+  height:25px;
+  background: none;
+  margin-top: 20px;
+}
+
+#btn_login  {
+  position:relative;
+  left:40%;
+  transform: translateX(-50%);
+  margin-bottom: 40px;
+  width:80%;
+  height:40px;
+  background: #168;
+  background-position: left;
+  background-size: 200%;
+  color:white;
+  font-weight: bold;
+  border:none;
+  cursor:pointer;
+  transition: 0.4s;
+  display:inline;
+}
+
+</style>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/crypto-js/3.1.2/rollups/aes.js"></script>
+<script>
+
+	window.onload = () => {
+		
+		const getCookie = (name) => {
+			  let matches = document.cookie.match(new RegExp(
+			    "(?:^|; )" + name.replace(/([\.$?*|{}\(\)\[\]\\\/\+^])/g, '\\$1') + "=([^;]*)"
+			  ));
+			  return matches ? decodeURIComponent(matches[1]) : undefined;
+		}
+		
+		let email = getCookie('email');
+		let password = getCookie('password');
+		
+		if(email !== undefined){
+			document.querySelector('#rememberEmail').checked = true;
+			document.querySelector('#email').value = email;
+		}
+		else document.querySelector('#rememberEmail').checked = false;
+		
+		if(password !== undefined){
+			document.querySelector('#rememberPassword').checked = true;
+			
+			//Base64로 인코딩 된 password를 디코딩
+			const decrypt = CryptoJS.enc.Base64.parse(password);
+		    const hashData = decrypt.toString(CryptoJS.enc.Utf8);		    
+		    password = hashData;
+			
+			document.querySelector('#password').value = password;
+		}	
+		else document.querySelector('#rememberPassword').checked = false;
+		
+	}
+
+	//로그인 처리
+	const loginCheck = async () => {
+		
+		let email = document.querySelector('#email');
+		let password = document.querySelector('#password');
+		let rememberMe = document.querySelector('#rememberMe');
+		
+		if(email.value === ''){
+			alert('이메일을 입력하세요.');
+			email.focus();
+			return false; //false를 안 적으면 함수 실행을 종료
+		}
+		
+	    if(password.value === ''){
+	    	alert('비밀번호를 입력하세요.');
+	    	password.focus();
+	    	return false;
+	    }
+	
+		let autoLoginCheck = rememberMe.checked === true?'O':'X';
+
+		let formData = new FormData();
+		formData.append("email", email.value);
+		formData.append("password", password.value);
+		formData.append("autoLoginCheck", autoLoginCheck);
+
+		fetch('/member/login',{
+			method : 'POST',
+			body : formData
+		}).then((response) => response.json())
+		  .then((data) => {
+			 console.log("data = " + data); 
+			 if(data.message !== ''){
+				
+				 cookieManage(email.value,password.value,data.message,data.authKey);				 
+				 if(data.role === 'USER')
+				 	document.location.href='/shop/main?page=1';
+				 else 
+					document.location.href='/master/main?page=1';
+				 
+			} else if(data.message === 'ID_NOT_FOUND') {
+				 	message.innerHTML = '<br><br>존재하지 않는 이메일입니다.';
+			} else if(data.message === 'PASSWORD_NOT_FOUND') {
+					message.innerHTML = '<br><br>잘못된 패스워드입니다.';
+			} else {
+				alert("시스템 장애로 로그인이 실패 했습니다.");		 
+			}		  
+	    }).catch((error)=> { console.log("error = " + error);} );
+	    
+	}
+	
+	//쿠키 관리
+	const cookieManage = (email,password,message,authKey) => {
+						
+		if(rememberMe.checked){			
+			if(!document.cookie) document.cookie = 'path=/; max-age=0';
+			document.cookie = 'authKey=' + authKey + ';path=/; expires=Sun, 31 Dec 2023 23:59:59 GMT';
+		} else document.cookie = 'authKey=' + authKey + ';path=/; max-age=0';
+		
+		//체크가 되었으면 쿠키를 생성, 체크가 안 되어져 있으면 쿠키 삭제		
+		if(rememberEmail.checked) {
+			if(!document.cookie) document.cookie = 'email=' + email + ';path=/; max-age=0';
+			document.cookie = 'email=' + email + ';path=/; expires=Sun, 31 Dec 2023 23:59:59 GMT';
+		} else document.cookie = 'email=' + email + ';path=/; max-age=0';
+		
+		if(rememberPassword.checked) {
+			
+			//Base64(양방향 복호화)로 패스워드 인코딩
+			const key = CryptoJS.enc.Utf8.parse(password);
+		    const base64 = CryptoJS.enc.Base64.stringify(key);
+			password = base64;
+		    
+			if(!document.cookie) document.cookie = 'password=' + password + ';path=/; max-age=0';			
+			document.cookie = 'password=' + password + ';path=/; expires=Sun, 31 Dec 2023 23:59:59 GMT';
+		} else document.cookie = 'password=' + password + ';path=/; max-age=0';	
+	} 
+	
+	//엔터 누르면 로그인 되도록 함 
+	const press = () => {
+		if(event.keyCode == 13) loginCheck(); 
+	}
+	
+	//자동로그인 체크 관리
+	const checkRememberMe = () => {
+		
+		if(document.querySelector('#rememberMe').checked){
+			document.querySelector('#rememberEmail').checked = false;
+			document.querySelector('#rememberPassword').checked = false;
+		}
+
+	}
+	
+	//이메일 체크 관리
+	const checkRememberEmail = () => {
+		
+		if(document.querySelector('#rememberEmail').checked)
+			document.querySelector('#rememberMe').checked = false;
+	}
+	
+	//자동로그인 체크 관리
+	const checkRememberPassword = () => {
+		
+		if(document.querySelector('#rememberPassword').checked)
+			document.querySelector('#rememberMe').checked = false;
+	}
+
+</script>
+
+</head>
+
+<body>
+
+<!-- 로그인 여부 확인 -->
+
+<div class="mall" align="center">
+
+	<div class="top_menu">
+		<img class="title_img" src="/images/title2.png"><br>
+		<span><a href="/shop/main?page=1">처음으로</a> | <a href="/member/signup">회원가입</a> | <span style="color:red; font-weight:bold">로그인</span></span>
+	</div>
+
+	<div class="main_shop">
+		<div class="login_image">
+			<img src="/images/login2.png">
+		</div>
+		<div class="login">
+			<h1>로그인</h1>
+			<form id="loginForm" method="post"> 
+				<input type="text" name="email" id='email' class="items" placeholder="이메일을 입력하세요.">
+	         	<input type="password" name="password" id="password" class="items" onkeydown="press()" placeholder="패스워드를 입력하세요.">
+	         	<br><br>
+	         	<input type="checkbox" id="rememberEmail" onclick="checkRememberEmail()">아이디 기억
+	         	<input type="checkbox" id="rememberPassword" onclick="checkRememberPassword()">패스워드 기억
+	         	<input type="checkbox" id="rememberMe" onclick="checkRememberMe()">자동 로그인
+          		<span id="message" style="color:red;" ></span>
+	     		<br><br><input type="button" id="btn_login" value="로그인" onclick="loginCheck()"> 
+			</form>
+	
+		</div>
+	</div>
+
+</div>
+
+</body>
+</html>

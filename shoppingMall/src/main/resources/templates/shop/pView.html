@@ -1,0 +1,219 @@
+<!DOCTYPE html>
+<html lang="ko" xmlns:th="http://www.thymeleaf.org"
+				xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout">
+<head>
+<meta charset="UTF-8">
+<title>쇼핑몰</title>
+<link rel="stylesheet" type="text/css" href="/css/shopHeader.css">
+
+<style>
+
+.left_image {
+    width:40%;
+    height:100%;
+    margin:auto;
+    background-color: white;    
+    display: inline-block;
+    margin:0px;
+    
+}
+
+.right_details {
+    width:40%;
+    height:100%;
+    text-align: left;
+    vertical-align: top;
+    background-color: white;
+    display:inline-block;
+    margin:0px;
+}
+
+.btn_cart  {
+  width:330px;
+  height:40px;
+  background: #168;
+  color:white;
+  font-weight: bold;
+  border:none;
+  cursor:pointer;
+  display:in-line;
+
+}
+
+.btn_like  {
+  width:100px;
+  height:40px;
+  background: white;
+  color:black;
+  font-weight: bold;
+  border:solid, #168;
+  cursor:pointer;
+  display:in-line;
+
+}
+
+</style>
+
+<script>
+
+	//화면 렌더링 이후 발생할 이벤트에서 사용될 광역 변수 설정
+	var number = 1;
+	var totalPrice = parseInt('[[${view.p_price}]]');
+	var price = parseInt('[[${view.p_price}]]');
+	
+	//로그아웃 처리
+	const logout = () => {
+		if(!confirm("로그아웃 하시겠습니까?")) return;
+		document.location.href='/member/logout';		
+	}
+	
+	//장바구니에 담을 상품 갯수 및 가격 구하기
+	const count = (type) =>  {
+		  
+		  number = parseInt(document.getElementById('quantity').innerHTML);
+		  if(type === 'plus') {
+		    number ++;
+		    totalPrice += price;
+		  }else if(type === 'minus' && number !==1 )  {
+		    number --;
+		    totalPrice -= price;
+		  }
+		  document.getElementById('quantity').innerHTML = number;
+		  document.getElementById('total_price').innerHTML = totalPrice.toLocaleString('ko-KR');
+	}
+	
+	//장바구니에 상품 담기
+	const cart = async (email,p_id,pCartQuantity) => {
+
+		number += pCartQuantity; //선택한 상품 갯수에다가 기존 장바구니에 담겨져 있는 이 상품의 갯수를 더한다 
+		
+		if(email === '' || email === null) {
+			alert("로그인 이후 이용할 수 있는 서비스입니다.");
+			return;
+		}
+
+		await fetch('/shop/pCart',{
+			  method: "POST",
+			  headers: {
+			    "Content-Type": "application/json",
+			  },
+			  body: JSON.stringify({
+					cart_email: email,
+					p_id: p_id,
+					cart_quantity: number
+			  }),				
+			}).then((response)=> response.text())
+				.then((data) => {
+					if(data != '' || data != null || data != 0){
+						alert("장바구니에 상품을 넣어 두었습니다.");
+						document.getElementById('pCartCount').innerHTML = data;
+					} else {
+						alert("시스템 장애로 장바구니 담기가 실패했습니다.");		
+					}
+			}).catch((error)=> {				
+				console.log("error = " + error);
+			});
+		
+	}
+	
+	//관심상품 
+	const likeCheck = async (type,email) => {
+		
+		//재고가 0이면 장바구니 담기 버튼 비활성화 --> 관심상품 관리와 상관 없음
+		const stock = parseInt('[[${view.p_stock}]]');
+		const btnCart = document.getElementById('btn_cart');  
+		
+		if(stock < 1) {
+			btnCart.disabled = true; //관련상품 버튼 비활성화
+			btnCart.style.background = 'gray'; //관련상품 버튼 색상변화
+		}
+		///////////////////////////////////////////////////////
+		
+		if(email === '' || email === null) {
+			alert("로그인 이후 이용할 수 있는 서비스입니다.");
+			return;
+		}
+				
+		await fetch('/shop/likeManage?type=' + type,{
+			  method: "POST",
+			  headers: {
+			    "Content-Type": "application/json",
+			  },
+			  body: JSON.stringify({
+				    like_email: '[[${session.email}]]',
+					p_id: parseInt('[[${view.p_id}]]'),					
+			  }),				
+			}).then((response)=> response.text())
+				.then((data) => {
+					if(data == 'good'){
+						const btnLike = document.getElementById('btn_like');
+						btnLike.style.border = 'solid, red';
+						btnLike.style.background = 'red';
+						btnLike.style.color = 'white';
+						
+					} else {
+						const btnLike = document.getElementById('btn_like');
+						btnLike.style.border = 'solid, #168';
+						btnLike.style.background = 'white';
+						btnLike.style.color = 'black';	
+					}
+			}).catch((error)=> {				
+				console.log("error = " + error);
+			});
+		
+		
+	}
+	
+</script>
+
+<script src="/js/logout.js"></script>
+
+</head>
+
+<body onload="likeCheck()">
+
+<div class="mall">
+
+	<div class="top_menu">
+		<th:block th:replace="~{layout/shopHeader::header}"></th:block>
+	</div>
+
+	<div class="main_shop">
+		<div class="left_image">
+			<img th:src="@{'/p_img/' + ${view.p_stored_image}} " style="width: 490px; height:auto">
+		</div>
+		<div class="right_details">
+			<span th:text="${view.p_name}" style="font-size:40px;font-weight:bold;"></span><br>
+			<span th:text="${#numbers.formatInteger(view.p_price,3,'COMMA')+'원'}" style="font-size:40px;font-weight:bold;"></span><br><br>
+			<span style="font-size:20px;">제조사 : </span><span th:text="${view.p_manufacturer}" style="font-size:20px;"></span><br>
+			<span style="font-size:20px;">등록일시 : </span><span th:text="${#temporals.format(view.p_regdate,'yyyy-MM-dd')}" style="font-size:20px;"></span><br>
+			<span style="font-size:20px;"><pre>[[${view.p_description}]]</pre></span><br>
+			
+			<th:block th:if="${view.p_stock} gt 0">
+				<span style="font-size:20px;">상품선택</span>&nbsp;&nbsp;
+				
+				<input type='button' onclick='count("plus")' value='+'/>
+					<span id="quantity">1</span>
+				<input type='button' onclick='count("minus")' value='-'/><br><br>
+				
+				<div style="text-align:right;font-size:30px;font-weight:bold;">
+					<span>상품 금액 : </span>&nbsp;
+					<span id="total_price">[[${#numbers.formatInteger(view.p_price,3,'COMMA')}]]</span><span>원</span>
+				</div><br>
+			</th:block>
+			<th:block th:if="${view.p_stock} lt 1">	
+				<span style="font-size:20px; color:red; font-weight: bold">SOLD OUT !</span>
+				<br><br>
+			</th:block>
+			
+			<div style="float: right;">
+				<input type="button" id="btn_like" class="btn_like" value="관심상품" th:onclick="likeCheck('check',[[${session.email}]])"> 
+				<input type="button" id="btn_cart" class="btn_cart" value="장바구니 담기" th:onclick="cart([[${session.email}]],[[${view.p_id}]],[[${pCartQuantity}]])"> 
+			</div>
+		</div>
+		<br><br>
+	</div>
+</div>
+</body>
+</html>
+

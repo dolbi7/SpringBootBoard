@@ -1,0 +1,205 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper
+  PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+  "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.shop.mapper.ShopMapper">
+
+<!-- 상품 목록 보기 -->
+<select id="pList" parameterType="java.util.HashMap" resultType="com.shop.dto.ProductDTO">
+	select rnum seq,p_id,p_name,p_manufacturer,p_price,p_stock,p_stored_image,p_regdate,p_status from  
+	( select p_id,p_name,p_manufacturer,p_price,p_stock,p_stored_image,
+		to_char(p_regdate,'YYYY-MM-DD HH24:MI:SS') as p_regdate,p_status, 
+		row_number() over(order by p_id desc) as rnum from tbl_product   
+		where p_status = 'O' and (p_name like '%'||#{keyword}||'%' or p_manufacturer like '%'||#{keyword}||'%') 
+    ) product where rnum between #{startPoint} and #{endPoint} order by p_id desc
+</select>
+
+<!-- 전체 상품 목록 수 계산-->
+<select id="p_totalCount" parameterType="java.util.HashMap" resultType="int">
+	select count(*) from tbl_product where p_status = 'O' and (p_name like '%'||#{keyword}||'%' 
+		or p_manufacturer like '%'||#{keyword}||'%')
+</select> 
+
+<!-- 상품 상세 정보 보기 -->
+<select id="pView" parameterType="int" resultType="com.shop.dto.ProductDTO">
+	select p_id,p_name,p_manufacturer,p_price,p_stock,p_stored_image,p_description,p_regdate
+		from tbl_product where p_id=#{p_id}
+</select>
+
+<!-- 관심 상품 등록 여부 확인 -->
+<select id="likeCheck" parameterType="com.shop.dto.LikeDTO" resultType="int">
+	select count(*) from tbl_like where p_id = #{p_id} and like_email = #{like_email}
+</select>
+
+<!-- 관심 상품 등록 -->
+<insert id="likeRegistry" parameterType="com.shop.dto.LikeDTO">
+	insert into tbl_like (like_id, p_id, like_email, like_regdate) values (tbl_like_seq.nextval, #{p_id}, #{like_email}, sysdate)
+</insert>
+
+<!-- 관심 상품 삭제 -->
+<delete id="likeDelete" parameterType="com.shop.dto.LikeDTO">
+	delete from tbl_like where p_id = #{p_id} and like_email = #{like_email}
+</delete>
+
+<!-- 관심상품 목록 보기 -->
+<select id="pLikeView" parameterType="string" resultType="com.shop.dto.ProductDTO">
+	select b.p_id, b.p_stored_image p_stored_image, b.p_name, b.p_manufacturer, b.p_price from tbl_like a, tbl_product b  
+		where b.p_status = 'O' and a.p_id = b.p_id and a.like_email = #{like_email} order by a.like_regdate desc
+</select>
+
+<!-- 장바구니에 상품 담기 -->
+<insert id="pCartInsert" parameterType="com.shop.dto.CartDTO">
+	insert into tbl_cart (cart_id,p_id,cart_quantity,cart_email,cart_regdate,cart_status) values 
+		(tbl_cart_seq.nextval, #{p_id}, #{cart_quantity}, #{cart_email}, sysdate,'00')	
+</insert>
+
+<!-- 장바구니 상품 갯수 업데이트 -->
+<update id="pCartUpdate" parameterType="com.shop.dto.CartDTO">
+	update tbl_cart set cart_quantity = #{cart_quantity}   
+		where p_id = #{p_id} and cart_email = #{cart_email}
+</update>
+
+<!-- 장바구니에 담겨져 있는 상품별 갯수 계산 -->
+<select id="pCartQuantity" parameterType="com.shop.dto.CartDTO" resultType="int">
+	select nvl(max(cart_quantity),0) as cart_quantity from tbl_cart where cart_email = #{cart_email} and p_id = #{p_id}
+</select>
+
+<!-- 장바구니에 담겨져 있는 상품 종류 갯수 계산 -->
+<select id="pCartCount" parameterType="string" resultType="int">
+	select count(*) from tbl_cart a, tbl_product b where a.p_id = b.p_id and b.p_status = 'O' and a.cart_email = #{cart_email}
+</select>
+
+<!-- 장바구니에 담긴 상품 목록 보기 -->
+<select id="pCartView" parameterType="string" resultType="com.shop.dto.CartDTO">
+	select b.cart_id cart_id, a.p_id p_id, a.p_stock p_stock, a.p_stored_image p_stored_image, a.p_name p_name, a.p_manufacturer p_manufacturer, 
+		a.p_price p_price, b.cart_quantity cart_quantity, (a.p_price*b.cart_quantity) as cart_amount 
+			from tbl_product a, tbl_cart b where a.p_status = 'O' and a.p_id = b.p_id and b.cart_email = #{cart_email} order by b.cart_id desc
+</select>
+
+<!-- 장바구니에서 삭제 버튼 클릭 시 선택한 제품을 장바구니에서 삭제 -->
+<select id="pCartDelete" parameterType="int">
+	delete from tbl_cart where cart_id = #{cart_id}
+</select>
+
+<!-- 장바구니 비우기 -->
+<delete id="pCartDeleteAll" parameterType="string">
+	delete from tbl_cart where cart_email = #{cart_email}
+</delete>
+
+<!-- 장바구니에서 선택한 상품을 tbl_cart 테이블에 구매서 작성 중 상태로 전환 -->
+<select id="pCartInvoice" parameterType="com.shop.dto.CartDTO">
+	update tbl_cart set cart_status = '01', invoice = #{invoice} where cart_id = #{cart_id} 
+</select>
+
+<!-- 장바구니에서 선택한 상품을 tbl_order 테이블에 구매서 작성 중 상태로 저장 -->
+<insert id="pOrderInvoice" parameterType="com.shop.dto.CartDTO">
+	insert into tbl_order (order_id,cart_id,order_email,p_id,order_quantity,order_price,order_status,order_regdate)  
+		select a.invoice,a.cart_id,a.cart_email,a.p_id,a.cart_quantity,b.p_price,a.cart_status,sysdate from tbl_cart a,tbl_product b 
+			where a.p_id = b.p_id and b.p_status = 'O' and a.cart_id = #{cart_id}
+</insert>
+
+<!-- 주문서 작성 내용 중 주문 상품 목록 보기 -->
+<select id="invoiceProduct" parameterType="string" resultType="com.shop.dto.OrderDTO">
+	select a.p_stored_image p_stored_image, a.p_name p_name, a.p_manufacturer p_manufacturer, b.order_price order_price, 
+		b.order_quantity order_quantity,(b.order_quantity*b.order_price) order_amount from tbl_product a, tbl_order b 
+			where a.p_id = b.p_id and a.p_status = 'O' and b.order_id = #{invoice} order by b.cart_id desc
+</select>
+
+<!-- 주문서 이전 배송지 정보 가져 오기 -->
+<select id="invoiceOldAddr" parameterType="string" resultType="com.shop.dto.OrderInfoAddrDTO">
+	select rv_id, rv_zipcode, rv_telno, rv_email, rv_name, rv_address 
+    	from tbl_order_info_rv_addr where order_email = #{order_email} order by rv_id desc
+</select>
+
+<!-- 주문서 결제 -->
+<update id="pOrderFulfilment" parameterType="com.shop.dto.OrderInfoDTO">
+	update tbl_order set order_status = '02',order_regdate = sysdate where order_id = #{order_id} and order_email = #{order_email}  
+</update>
+
+<!-- 주문 이력 관리용 주문 정보 등록 -->
+<insert id="pOrderInfoRegistry" parameterType="com.shop.dto.OrderInfoDTO">
+	insert into tbl_order_info (order_id,order_email,p_name,order_name,order_regdate,order_quantity,order_amount,order_status,
+		rv_name,rv_email,rv_telno,rv_zipcode,rv_address) values 
+		(#{order_id},#{order_email},
+			(select decode(sum(a.order_quantity),1, max(b.p_name), max(b.p_name)||' 외 '||(sum(a.order_quantity)-1)||'건')
+ 				as p_name from tbl_order a, tbl_product b where a.p_id = b.P_id and a.order_id = #{order_id}),
+			(select username from tbl_member where email = #{order_email}),
+			sysdate,
+			(select sum(order_quantity) from tbl_order where order_id = #{order_id}),
+			(select sum(order_quantity*order_price) from tbl_order where order_id = #{order_id}),
+			'02', #{rv_name}, #{rv_email}, #{rv_telno}, #{rv_zipcode}, #{rv_address}			
+		)
+</insert>
+
+<!-- 주문 이력 관리용 배송지 정보 등록 -->
+<update id="pOrderInfoRVRegistry" parameterType="com.shop.dto.OrderInfoAddrDTO">
+	insert into tbl_order_info_rv_addr (rv_id, order_email, rv_name, rv_zipcode, rv_address, rv_telno, rv_email) values 
+		(tbl_order_info_rv_addr_seq.nextval, #{order_email}, #{rv_name}, #{rv_zipcode}, #{rv_address}, #{rv_telno}, #{rv_email})
+</update>
+
+<!-- 주문 이력 관리용 배송지 정보 삭제 -->
+<delete id="pOrderInfoRVDelete" parameterType="com.shop.dto.OrderInfoAddrDTO">
+	delete from tbl_order_info_rv_addr where order_email = #{order_email} and rv_id = #{rv_id}
+</delete>
+
+<!-- 주문 이력 관리용 주문 상품 등록 -->
+<insert id="pOrderInfoProduct" parameterType="string">
+	insert into tbl_order_info_product (order_id,p_id,order_price,order_quantity)
+    	select order_id,p_id,order_price,order_quantity from tbl_order where order_id = #{order_id}
+</insert>
+
+<!-- 결제 완료 후 tbl_order 테이블 내에 주문 상태가 '01'(주문서 작성중)인 주문 항목 삭제  -->
+<delete id="pOrderDeleteInvoice" parameterType="string">
+	delete from tbl_order where order_status = '01' and order_email = #{order_email}
+</delete>
+
+<!-- 결제 완료 후 구입한 항목을 장바구니에서 삭제 -->
+<delete id="pOrderDeleteCart" parameterType="string">
+	delete from tbl_cart where invoice = #{invoice}
+</delete>
+
+<!-- 결제 완료 후 구입 항목 정보 읽어 오기(재고 조정용) -->
+<select id="pStockInfo" parameterType="string" resultType="com.shop.dto.OrderDTO">
+	select a.p_id p_id, a.p_stock p_stock, b.order_quantity order_quantity 
+		from tbl_product a, tbl_order b where a.p_id = b.p_id and b.order_id = #{invoice} 
+</select>
+
+<!-- 결제 완료 후 상품 재고 조정 -->
+<update id="pStockUpdate" parameterType="com.shop.dto.ProductDTO">
+	update tbl_product set p_stock = #{p_stock} where p_id = #{p_id}
+</update>
+
+<!-- 회원별 전체 주문 갯수 구하기 -->
+<select id="pOrderCount" parameterType="string" resultType="int">
+	select count(*) from tbl_order_info where order_email = #{order_email}
+</select>
+
+<!-- 주문 내역 보기 -->
+<select id="pOrderInfoList" parameterType="java.util.HashMap" resultType="com.shop.dto.OrderInfoDTO">
+	select rnum seq,order_id,order_regdate,p_name,order_quantity,order_amount,order_status,order_status_name from 
+		( select a.order_id order_id, a.order_regdate order_regdate, a.p_name p_name, a.order_quantity order_quantity, 
+			a.order_amount order_amount, a.order_status order_status, b.order_status_name order_status_name, row_number() over(order by order_regdate desc) as rnum
+				from tbl_order_info a, tbl_order_status b where a.order_status = b.order_status_id and a.order_email = #{order_email} ) order_info 
+						where rnum between #{startPoint} and #{endPoint} order by order_regdate desc
+</select>
+
+<!-- 주문 내역에서 고객 이름, 결제완료건수, 주문금액 보기 -->
+<select id="pOrderTotalInfo" parameterType="string" resultType="com.shop.dto.OrderInfoDTO">
+	select max(order_name) order_name, count(*) order_count, sum(order_amount) order_total_amount 
+		from tbl_order_info where order_email = #{order_email} and order_status = '05'
+</select>
+
+<!-- 주문 내역에서 주문서 볼때 주문 상품 목록 가져 오기 -->
+<select id="pOrderInfoProductView" resultType="com.shop.dto.OrderDTO">
+	select a.p_stored_image p_stored_image, a.p_name p_name, a.p_manufacturer p_manufacturer, b.order_price order_price, 
+		b.order_quantity order_quantity,(b.order_quantity*b.order_price) order_amount from tbl_product a, tbl_order_info_product b 
+			where a.p_id = b.p_id and a.p_status = 'O' and b.order_id = #{order_id} order by a.p_id desc
+</select>
+
+<!-- 주문 내역에서 주문서 볼때 받는 사람 정보 가져 오기 -->
+<select id="pOrderInfoRVView" parameterType="string" resultType="com.shop.dto.OrderInfoAddrDTO">
+	select rv_name, rv_zipcode, rv_address, rv_telno, rv_email from tbl_order_info where order_id = #{order_id}
+</select>
+
+</mapper>
+

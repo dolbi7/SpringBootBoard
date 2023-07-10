@@ -1,0 +1,20 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<body>
+	<div th:fragment="header">
+		<img class="title_img" src="/images/title2.png"><br>
+		<a href="/shop/main?page=1">처음으로</a> | 
+		<a href="/shop/main?page=1">상품보기</a> |  
+		<th:block th:if="${session.email == null}">
+			<a href="/member/signup">회원가입</a> | <a href="/member/login">로그인</a>
+		</th:block>
+		<th:block th:if="${session.email != null}">
+			<a href="/shop/pLike">관심상품</a> | 
+			<a href="/shop/pOrderHistory?page=1">주문내역</a> | 
+			<a href="/shop/pCart">장바구니</a>(<span id="pCartCount">[[${pCartCount}]]</span>) | 
+			<a href="/member/memberInfoView">회원정보</a> | 
+			<a href="javascript:logout()">로그아웃</a>
+		</th:block>
+	</div>
+</body>		
+</html>

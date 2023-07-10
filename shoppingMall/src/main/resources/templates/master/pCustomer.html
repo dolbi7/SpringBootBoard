@@ -1,0 +1,162 @@
+<!DOCTYPE html>
+<html lang="ko" xmlns:th="http://www.thymeleaf.org"
+				xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout">
+<head>
+<meta charset="UTF-8">
+<title>회원 관리</title>
+<link rel="stylesheet" type="text/css" href="/css/masterHeader.css">
+
+<style>
+
+.tableDiv {
+	text-align: center;
+}
+
+.InfoTable {
+	border-collapse: collapse;
+	border-top: 3px solid #168;
+	width: 88%;  
+	margin-left: auto; margin-right: auto;
+}  
+.InfoTable th {
+	color: #168;
+	background: #f0f6f9;
+	text-align: center;
+}
+.InfoTable th, .InfoTable td {
+	padding: 10px;
+	border: 1px solid #ddd;
+}
+.InfoTable th:first-child, .InfoTable td:first-child {
+	border-left: 0;
+}
+.InfoTable th:last-child, .InfoTable td:last-child {
+	border-right: 0;
+}
+.InfoTable tr td:first-child{
+	text-align: center;
+}
+
+#address {
+    display: block;
+    width: 500px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.keyword {
+  width: 50%;
+  height:30px;
+  border: 2px solid #168;
+  outline:none;
+  color: #168;
+  font-size:16px;
+  background: none;
+}
+
+.btn_search {
+  width:5%;
+  height:35px;
+  background: #168;
+  background-position: right;
+  color:white;
+  font-weight: bold;
+  border:none;
+  cursor:pointer;
+}
+
+</style>
+
+<script>
+
+	//검색
+	const p_search = () => {
+		
+		var keyword =  document.getElementById('keyword').value;
+		location.href = '/master/pCustomer?page=1&keyword=' + keyword;
+	}
+	
+	//키보드 엔터 누르면 검색 함수 실행
+	const press = () => {
+		if(event.keyCode == 13) p_search(); 
+	}
+	
+</script>
+
+<script src="/js/logout.js"></script>
+
+</head>
+
+<body>
+
+<!-- 로그인 여부 확인 -->
+<script>
+	let email = '[[${session.email}]]';
+	if(email == '' || email == null || email == undefined)
+		document.location.href = '/member/login';
+</script>
+
+<div class="mall">
+
+	<div class="top_menu">
+		<th:block th:replace="~{layout/MasterHeader::header}"></th:block>
+	</div>
+
+	<br>
+	<div class="main_shop">
+		<div class="tableDiv">
+			<h1>회원 관리</h1>
+			<div>
+    			<input type="text" id="keyword" class="keyword" name="keyword" onkeydown="press()" placeholder="이름,주소,전화번호를 입력하여 검색하세요.">
+  				<button type="button" class="btn_search" onclick="p_search()">검색</button>
+			</div><br>	
+
+			<table class="InfoTable">
+				<tr>
+		   			<th>이름</th>
+		   			<th>이메일</th>
+		   			<th>주소</th>
+		   			<th>전화번호</th>
+		   			<th>가입일</th>
+		   			<th>주문</th>
+		   			<th>결제</th>
+		   			<th>결제금액</th>
+		  		</tr>
+		 		<tbody>
+		  			<tr th:each="member: ${member}">
+		  				<td style="text-align:center;"><a th:href="@{'/member/memberInfoView?email=' + ${member.email}}" 
+		  					onMouseover='this.style.textDecoration="underline"'  
+			  				onmouseout="this.style.textDecoration='none';"><span th:text="${member.username}"></span></a></td>
+			  			<td style="text-align:left;">[[${member.email}]]</td>
+			  			<td style="text-align:left;"><span id="address">([[${member.zipcode}]]) [[${member.address}]]</span></td>
+			  			<td style="text-align:left;">[[${member.telno}]]</td>
+			  			<td><span th:text="${#temporals.format(member.regdate,'yyyy-MM-dd')}"></span></td>
+			  			<td style="text-align:right;"><span th:text="${member.order_count}"></span></td>	
+			  			<td style="text-align:right;"><span th:text="${member.order_pay_count}"></span></td>	
+		  				<td style="text-align:right;">
+		  					<th:block th:if="${member.order_amount gt 999}">
+		  						<a th:href="@{'/shop/pOrderHistory?page=1&order_email=' + ${member.email}}" 
+		  							onMouseover='this.style.textDecoration="underline"'  
+			  						onmouseout="this.style.textDecoration='none';"		  						
+		  						>[[${#numbers.formatInteger(member.order_amount,3,'COMMA')+'원'}]]</a>
+		  					</th:block>
+		  					<th:block th:if="${member.order_amount lt 1000}">
+		  						<a th:href="@{'/shop/pOrderHistory?page=1&order_email=' + ${member.email}}"
+		  							onMouseover='this.style.textDecoration="underline"'  
+			  						onmouseout="this.style.textDecoration='none';"
+		  						>[[${member.order_amount + '원'}]]</a>
+		  					</th:block>	
+		  				</td> 
+		 			</tr>
+		 		</tbody>
+			</table>
+			<br>
+			<div>[(${pageListView})]<br></div>
+		<br><br>
+		</div>
+	</div>
+</div>
+</body>
+</html>
+

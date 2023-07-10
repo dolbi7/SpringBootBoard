@@ -1,0 +1,169 @@
+<!DOCTYPE html>
+<html lang="ko" xmlns:th="http://www.thymeleaf.org"
+				xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout">
+<head>
+<meta charset="UTF-8">
+<title>쇼핑몰</title>
+<link rel="stylesheet" type="text/css" href="/css/shopHeader.css">
+
+<style>
+
+.tableDiv {
+	text-align: center;
+}
+
+.InfoTable {
+      border-collapse: collapse;
+      border-top: 3px solid #168;
+      width: 75%;  
+      margin-left: auto;
+      margin-right: auto;
+    }  
+    .InfoTable th {
+      border-bottom: 3px solid #168;
+      color: #168;
+      background: #f0f6f9;
+      text-align: center;
+    }
+    .InfoTable th, .InfoTable td {
+      padding: 10px;
+      border: 1px solid #ddd;
+    }
+    .InfoTable th:first-child, .InfoTable td:first-child {
+      border-left: 0;
+    }
+    .InfoTable th:last-child, .InfoTable td:last-child {
+      border-right: 0;
+    }
+    .InfoTable tr td:first-child{
+      text-align: left;
+    }
+    .InfoTable caption{caption-side: top; }
+
+.p_image {
+       max-width: 30%;
+       height: auto;
+       display: block; 
+       margin: auto;
+}
+
+.btn_order_change {
+  width: 80px;
+  height: 25px;
+  color: white;
+  background: #168;
+  display:inline-block;
+  cursor:pointer;
+  border:none;
+}
+
+</style>
+
+<script>
+
+	const order_change = async (order_status,order_id) => {
+		
+		let type = '';
+		if(order_status === '06') type = '주문취소';
+		else if(order_status === '07') type = '반품요청';
+		
+		if(!confirm(`주문번호 ${order_id}을 ${type} 상태로 변경 하시겠습니까?`)) return;
+		
+		formData = new FormData();
+		formData.append("order_status", order_status);
+		formData.append("order_id", order_id);
+		
+		await fetch('/shop/pOrderChange',{
+			method: 'POST',
+			body: formData
+		})
+		.then((response) => response.text())
+		.then((data) => {
+			if(data === 'good'){
+				alert("처리 요청이 완료되었습니다.");
+				window.location.reload();
+			} else 
+				alert("시스템 장애로 업무 요청이 실패하였습니다.");
+		});
+		
+	}
+
+</script>
+
+
+<script src="/js/logout.js"></script>
+
+</head>
+<body>
+
+<!-- 로그인 여부 확인 -->
+<script>
+	let email = '[[${session.email}]]';
+	if(email == '' || email == null || email == undefined)
+		document.location.href = '/member/login';
+</script>
+
+<div class="mall">
+
+	<div class="top_menu">
+		<th:block th:if="${session.role=='USER'}">
+			<th:block th:replace="~{layout/shopHeader::header}"></th:block>
+		</th:block>
+			
+		<th:block th:if="${session.role=='MASTER'}">
+			<th:block th:replace="~{layout/masterHeader::header}"></th:block>
+		</th:block>	
+	</div>
+
+	<div class="main_shop">
+		
+		<th:block th:if="${member.order_count != 0}">
+			<h1>[[${member.order_name}]]님의 주문 내역(주문확정 [[${member.order_count}]]건, 결제 금액 [[${#numbers.formatInteger(member.order_total_amount,3,'COMMA')+'원'}]])</h1><br>
+		</th:block>	
+		<th:block th:if="${member.order_count == 0}">
+			<h1>주문 내역</h1><br>
+		</th:block>
+		<div class="tableDiv">
+			<table class="InfoTable">
+				<tr>
+					<th>번호</th>
+		   			<th>주문번호</th>
+		   			<th>주문일자</th>
+		   			<th>주문상품</th>
+		   			<th>주문갯수</th>
+		   			<th>주문가격</th>
+		   			<th>주문상태</th>
+		   			<th>주문변경</th>		   			
+		  		</tr>
+		 		<tbody>
+		  			<tr  th:each="list: ${list}">
+		  				<td style="text-align:center;">[[${list.seq}]]</td>
+		  				<td style="text-align:center;"><a id="hypertext" th:href="@{'/shop/pCartInvoice?invoice=' + ${list.order_id} + '&type=01'}" 
+		  					onMouseover='this.style.textDecoration="underline"'  
+			  				onmouseout='this.style.textDecoration="none"'><span th:text="${list.order_id}"></span></a></td>
+		  				<td><span th:text="${#temporals.format(list.order_regdate,'yyyy-MM-dd')}"></span></td>
+		  				<td style="text-align:left;">[[${list.p_name}]]</td>		  				
+		  				<td><span th:text="${list.order_quantity}"></span></td>
+		  				<td style="text-align:right;"><span th:text="${#numbers.formatInteger(list.order_amount,3,'COMMA')+'원'}"></span></td>
+		  				<td><span th:text="${list.order_status_name}"></span></td>
+		  				<td>
+		  					<th:block th:if="${list.order_status == '02'}">
+		  						<input type="button" value="주문취소" class="btn_order_change" th:onclick="order_change('06',[[${list.order_id}]])">
+		  					</th:block> 
+		  					<th:block th:if="${list.order_status == '04'}">
+		  						<input type="button" value="반품요청" class="btn_order_change" th:onclick="order_change('07',[[${list.order_id}]])">
+		  					</th:block> 	
+		  					<span></span>
+		  				</td>
+		 			</tr>
+		 		</tbody>
+			</table>
+			<br><div>[(${pageListView})]</div>
+		</div>
+		<br>
+	</div>
+</div>
+<br><br><br><br>
+</body>
+</html>
+

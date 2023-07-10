@@ -1,0 +1,245 @@
+<!DOCTYPE html>
+<html lang="ko" xmlns:th="http://www.thymeleaf.org"
+				xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>상품 수정</title>
+<link rel="stylesheet" type="text/css" href="/css/masterHeader.css">
+
+<style>
+
+#imageZone {
+  border: 2px solid #92AAB0;
+  width: 450px;
+  height: auto;
+  color: #92AAB0;
+  text-align: center;
+  vertical-align: middle;
+  margin: auto;
+  padding: 10px 10px;
+  font-size:150%;
+  
+}
+
+.modifyForm {
+  width:60%;
+  height:auto;
+  margin:auto;
+  padding: 10px, 10px;
+  background-color:#FFFFFF;
+  border:1px solid gray;
+  border-radius: 10px;
+}
+
+.p_items {
+  width: 80%;
+  border:none;
+  border-bottom: 2px solid #adadad;
+  margin: 5px;
+  padding: 10px 10px;
+  outline:none;
+  color: #636e72;
+  font-size:16px;
+  height:25px;
+  background: none;
+}
+
+.p_itemNames {
+  width: 80px;
+  height: 20px;
+  margin: 5px;
+  padding: 10px 10px;
+  color: #168;
+  font-size:16px;
+  font-weight: bold;
+  height:25px;
+  background: #f0f6f9;
+  display:inline-block;
+}
+
+#p_description {
+  width: 83%;
+  height: 300px;
+  padding: 15px 15px;
+  box-sizing: border-box;
+  border: solid #adadad;
+  font-size: 16px;
+  resize: both;
+}
+
+#btn_modify  {
+  position:relative;
+  left:20%;
+  transform: translateX(-50%);
+  margin-top: 20px;
+  margin-bottom: 10px;
+  width:40%;
+  height:40px;
+  background: #168;
+  background-position: left;
+  background-size: 200%;
+  color:white;
+  font-weight: bold;
+  border:none;
+  cursor:pointer;
+  transition: 0.4s;
+  display:inline;
+}
+#btn_cancel  {
+  position:relative;
+  left:20%;
+  transform: translateX(-50%);
+  margin-top: 20px;
+  margin-bottom: 10px;
+  width:40%;
+  height:40px;
+  background: #163;
+  background-position: left;
+  background-size: 200%;
+  color:white;
+  font-weight: bold;
+  border:none;
+  cursor:pointer;
+  transition: 0.4s;
+  display:inline;
+}
+
+</style>
+
+<script src="/js/logout.js"></script>
+
+<script>
+
+	window.addEventListener('load', (event) => {
+		
+		var imgZone = document.getElementById('imageZone');
+		var fileEvent = document.getElementById('imageFile');
+		var btnModify = document.getElementById('btn_modify');
+
+		//상품 이미지 영억 클릭 했을때 파일 선택창 열기 이벤트 호출
+		imgZone.addEventListener('click', (e)=>{
+			fileEvent.click(e);		
+		});
+		
+		//파일 선택창 열기 이벤트  
+		fileEvent.addEventListener('change', (e)=> {
+			
+			const files = e.target.files;
+			showImage(files);
+		});
+		
+		const showImage = (files) => {
+
+			imgZone.innerHTML = ''; 
+			const imgFile = files[0];
+	
+			//if(imgFile.size > 1024*1024) { alert("1MB 이하 파일만 올려주세요."); return false; }
+			if(imgFile.type.indexOf("image") < 0) { 
+				alert("이미지 파일만 올려주세요"); 
+				return false; 
+			}
+	
+			const reader = new FileReader();
+			reader.onload = function(event){
+				imgZone.innerHTML = "<img src=" + event.target.result + " id='uploadImg' style='width:350px; height:auto;'>";
+			};
+			reader.readAsDataURL(imgFile);
+			imgcheck = "Y";
+		}
+		
+		btnModify.addEventListener('click', (e) => {
+			
+			if(p_name.value == '') { alert("상품명을 입력하세요."); p_name.focus();  return false; }
+			if(p_manufacturer.value == '') { alert("제조사명을 입력하세요."); p_manufacturer.focus(); return false; }
+		 	if(p_price.value == '') { alert("상품가격을 입력하세요."); p_price.focus(); return false; }
+			if(p_stock.value == '') { alert("상품재고갯수를 입력하세요."); p_stock.focus(); return false; }
+			
+			let mForm = document.getElementById('modifyForm');
+			
+			mForm.p_price.value = mForm.p_price.value.replace(/[^\d]+/g, '');	//입력된 값에서 ,를 삭제한 후 저장	
+
+			let formData = new FormData(mForm);
+			
+			fetch('/master/pModify',{
+				method : 'POST',
+				body : formData
+			}).then((response) => response.text())
+			  .then((data) => {
+				 if(data == 'good'){
+					 alert("상품 정보가 수정 되었습니다.");
+					 document.location.href='/master/pView?p_id=[[${view.p_id}]]';
+				 } else {
+					 alert("시스템 장애로 상품 정보 수정이 실패 했습니다.")
+				 }			  
+		    }).catch((error)=> console.log("error = ") + error);
+	   });
+	
+	});	
+
+	//상품 가격 입력시 숫자 세자리마다 , 자동으로 입력 되도록 만들기
+	const viewComma = (obj) => {
+		str1 = String(obj.value); 
+		str2 = str1.replace(/[^\d]+/g, ''); //입력된 값에서 ,를 삭제
+		
+		obj.value = str2.replace(/(\d)(?=(?:\d{3})+(?!\d))/g, '$1,');
+		
+	}
+	
+</script>
+
+</head>
+<body>
+
+<!-- 로그인 여부 확인 -->
+<script>
+	let email = '[[${session.email}]]';
+	if(email == '' || email == null || email == undefined)
+		document.location.href = '/member/login';
+</script>
+
+<div class="mall">
+
+	<div class="top_menu">
+		<th:block th:replace="~{layout/MasterHeader::header}"></th:block>
+	</div>
+
+	<br><br>
+	<div class="main_shop">
+	  	<div class="modifyForm">
+		    <h1>상품 수정</h1>
+		 
+		    <form name="modifyForm" id="modifyForm" method="post">
+		       	<input type="file" name="imageFile" id="imageFile" style="display:none;">
+		        <input type="hidden" name="p_stored_image" th:value="${view.p_stored_image}">
+		        <input type="hidden" name="p_org_image" th:value="${view.p_org_image}">
+		       	<span style="color:red;">※ 상품 사진 편집을 원하시면 이미지를 클릭해 주세요</span>
+		    	<div id="imageZone"><img th:src="@{'/p_img/'+ ${view.p_stored_image}}" style='width:300px; height:auto;'></div>
+		    	<br><span class="p_itemNames">상품코드 </span>
+		        	<input type="text" id="p_id" name="p_id" class="p_items" th:value="${view.p_id}" disabled>
+		        	<input type="hidden" name="p_id" th:value="${view.p_id}">
+		        <br><span class="p_itemNames">상품명 </span>
+		        	<input type="text" id="p_name" name="p_name" class="p_items" th:value="${view.p_name}">
+		        <br><span class="p_itemNames">제조사 </span>		        	
+			    	<input type="text" id="p_manufacturer" name="p_manufacturer" class="p_items" th:value="${view.p_manufacturer}">
+			    <br><span class="p_itemNames">상품가격</span>	
+		        	<input type="text" id="p_price" name="p_price" class="p_items" th:value="${#numbers.formatInteger(view.p_price,3,'COMMA')}" onkeyup="viewComma(this)">
+		        <br><span class="p_itemNames">상품재고</span>	
+		        	<input type="text" id="p_stock" name="p_stock" class="p_items" th:value="${view.p_stock}">
+		        <br><span class="p_itemNames">상품상태</span>	
+		        	<span style="width:83%;display:inline-block;text-align:left">
+		        	<input type="radio" name="p_status" value="O" th:checked="${view.p_status} == 'O'">판매 가능 
+		        	<input type="radio" name="p_status" value="X" th:checked="${view.p_status} == 'X'">판매 불가</span>
+		        <br><span class="p_itemNames" style="vertical-align:top">상품설명</span>
+		        	<textarea id="p_description" name="p_description" cols="100" rows="30">[[${view.p_description}]]</textarea>
+		        <input type="button" id="btn_modify" value="상품 수정">
+		        <input type="button" id="btn_cancel" value="취소" onclick="history.back()">
+			</form>
+		</div>
+    </div>
+</div>
+
+<br><br>
+
+</body>
+</html>

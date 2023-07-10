@@ -1,0 +1,248 @@
+<!DOCTYPE html>
+<html lang="ko" xmlns:th="http://www.thymeleaf.org">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>회원 정보 등록</title>
+<link rel="stylesheet" type="text/css" href="/css/shopHeader.css">
+
+<style>
+
+.registerForm {
+  width:900px;
+  height:auto;
+  margin: auto;
+  padding: 10px, 10px;
+  background-color:#FFFFFF;
+  border:1px solid gray;
+  border-radius: 20px;
+
+}
+.c_info {
+  width: 80%;
+  border:none;
+  border-bottom: 2px solid #adadad;
+  margin: 5px;
+  padding: 10px 10px;
+  outline:none;
+  color: #636e72;
+  font-size:16px;
+  height:25px;
+  background: none;
+}
+
+.c_infoNames {
+  width: 80px;
+  height: 20px;
+  margin: 5px;
+  padding: 10px 10px;
+  color:  #168;
+  font-size:16px;
+  font-weight: bold; 
+  background: #f0f6f9;
+  display:inline-block;
+}
+
+#btn_addrSearch {
+  width: 100px;
+  height: 20px;
+  font-size:16px;
+  font-weight: bold;
+  height:40px;
+  background: #168;
+  color: white;
+  display:inline-block;
+  border: none;
+  cursor: pointer;
+}
+
+#btn_register  {
+  position:relative;
+  left:20%;
+  transform: translateX(-50%);
+  margin-top: 20px;
+  margin-bottom: 10px;
+  width:40%;
+  height:40px;
+  background: #168;
+  background-position: left;
+  background-size: 200%;
+  color:white;
+  font-weight: bold;
+  border:none;
+  cursor:pointer;
+  transition: 0.4s;
+  display:inline;
+}
+#btn_cancel  {
+  position:relative;
+  left:20%;
+  transform: translateX(-50%);
+  margin-top: 20px;
+  margin-bottom: 10px;
+  width:40%;
+  height:40px;
+  background: #165;
+  background-position: left;
+  background-size: 200%;
+  color:white;
+  font-weight: bold;
+  border:none;
+  cursor:pointer;
+  transition: 0.4s;
+  display:inline;
+}
+
+</style>
+
+<script>
+
+	//회원 정보 등록
+	const register = async () => {
+		
+		if(email.value == '') { alert("이메일을 입력하세요."); email.focus();  return false; }
+		if(username.value == '') { alert("이름을 입력하세요."); username.focus(); return false; }
+		const Pass = userpasswd.value;
+		const Pass1 = userpasswd1.value;
+		if(Pass == '') { alert("암호를 입력하세요."); userpasswd.focus(); return false; }
+		if(Pass1 == '') { alert("암호를 입력하세요."); userpasswd1.focus(); return false; }
+		if(Pass != Pass1) 
+			{ alert("입력된 비밀번호를 확인하세요"); userpasswd1.focus(); return false; }
+		
+		//암호유효성 검사
+		const num = Pass.search(/[0-9]/g);
+	 	const eng = Pass.search(/[a-z]/ig);
+	 	const spe = Pass.search(/[`~!@@#$%^&*|₩₩₩'₩";:₩/?]/gi);	
+		
+	 	if(Pass.length < 8 || Pass.length > 20) { alert("암호는 8자리 ~ 20자리 이내로 입력해주세요."); return false; }
+			else if(Pass.search(/\s/) != -1){ alert("암호는 공백 없이 입력해주세요."); return false; }
+				else if(num < 0 || eng < 0 || spe < 0 ){ alert("암호는 영문,숫자,특수문자를 혼합하여 입력해주세요."); return false; }
+		
+	 	//주소 문자열 완성
+		if(zip.value == '') { alert("검색할 주소를 입력하세요."); zip.focus(); return false; }
+		zipcode.value = zip.value;
+		if(addr2.value == '') { alert("상세 주소를 입력하세요."); addr2.focus(); return false; }
+		address.value = addr1.value + ' ' + addr2.value;
+	 	
+		//전화번호 문자열 정리
+		if(telno.value == '') { alert("전화번호를 입력하세요."); telno.focus(); return false; }
+	 	const beforeTelno = telno.value;
+	 	const afterTelno = beforeTelno.replace(/\-/gi,"").replace(/\ /gi,"").trim();
+	 	
+	 	telno.value = afterTelno;
+	 	
+	 	//form 데이터 submit 방식으로 회원 정보 전송
+	 	//registerForm.action = '/member/signup';
+	 	//registerForm.submit();
+	 	
+	 	//비동기 방식으로 회원 정보 전송
+	 	const formData = new FormData(registerForm);
+	 	
+		await fetch('/member/signup',{
+			method : 'POST',
+			body : formData
+		}).then((response) => response.text())
+		  .then((data) => {
+			 if(data == 'good'){
+				 alert(username.value + "님 회원 가입을 축하드립니다.\n로그인 화면으로 이동합니다.");
+				 document.location.href='/member/login';				 
+				} else {
+					 alert("시스템 장애로 회원가입이 실패 했습니다.");		 
+			 }		  
+	    }).catch((error)=> console.log("error = ") + error);
+
+	}
+
+	//이메일 중복 확인
+	const checkEmail = async () => {
+		
+		const data = {email: email.value}; //데이터 저장을 위한 자바 객체
+		
+		await fetch('/member/idCheck',{
+			method : 'POST',
+			headers: {
+				"Content-Type" : "application/json"
+			},
+			body : JSON.stringify(data) //자바 객체를 JSON으로 변환
+		}).then((response) => response.text())
+		  .then((data) => {
+			  if(data == 1){
+				 message.innerHTML = '<br><br>동일한 이메일이 이미 존재합니다. 새로운 아이디를 입력하세요.<br>';
+				 email.focus();
+				} else {
+					message.innerHTML = '<br><br>사용 가능한 이메일입니다.<br>'; 
+			 }		  
+	    }).catch((error)=> console.log("error = ") + error);
+		
+	}
+
+	//주소 검색창 열기
+	const searchAddr = () => {
+
+		if(addrSearch.value == '') {
+			alert("검색할 주소를 입력하세요.");
+			addrSearch.focus();
+			return false;
+		}
+
+		window.open(
+		          "/member/addrSearch?page=1&addrSearch=" + addrSearch.value,
+		          "주소검색",
+		          "width=800, height=500, top=50, left=50"
+		);
+		
+	}
+	
+</script>
+
+</head>
+<body>
+<br><br><br>
+
+<div class="mall">
+
+	<div class="top_menu">
+		<img class="title_img" src="/images/title.jpg"><br>
+		<span><a href="/shop/main?page=1">처음으로</a> | <span style="color:red; font-weight:bold">회원가입</span> | <a href="/member/login">로그인</a></span>	
+	</div>
+
+	<div class="main_shop">
+		  <div class="registerForm">
+	      
+		    <h1>회원 가입</h1>
+		 
+		    <form id="registerForm" method="post">
+		    	<br><span class="c_infoNames">이메일</span>
+		        	<input type="text" id="email" name="email" class="c_info" placeholder="이메일을 입력하세요." onchange="checkEmail()">
+		        	<span id="message" style="color:red;text-align:center;"></span>
+		        <br><span class="c_infoNames">이름</span>
+					<input type="text" id="username" name="username" class="c_info" placeholder="이름을 입력하세요.">
+				<br><span class="c_infoNames">암호</span>
+		        	<input type="password" id="userpasswd" name="password" class="c_info" placeholder="암호를 입력하세요.">
+		        	<p style="color:red;text-align:center;">※ 8~20이내의 영문자, 숫자, 특수문자 조합으로 암호를 만들어 주세요.</p>
+		        <br><span class="c_infoNames">암호</span>
+		        	<input type="password" id="userpasswd1" name="userpasswd1" class="c_info" placeholder="암호를 한번 더 입력하세요.">
+		        <br><input type="button" id="btn_addrSearch" value="주소검색" onclick="searchAddr()">
+		        	<input type="text" id="addrSearch" name="addrSearch" class="c_info" placeholder="검색할 주소를 입력하세요.">
+		        <br><span class="c_infoNames">우편번호</span>  
+		        	<input type="text" id="zip" class="c_info" name="zip" placeholder="우편번호가 검색되어 출력됩니다." disabled>
+		            <input type="hidden" id="zipcode" class="c_info" name="zipcode">
+		        <br><span class="c_infoNames">도로명주소</span>      
+		        	<input type="text" id="addr1" class="c_info" name="addr1" placeholder="주소가 검색되어 출력됩니다." disabled>
+		        <br><span class="c_infoNames">상세주소</span>  	
+		        	<input type="text" id="addr2" class="c_info" name="addr2" placeholder="상세주소를 입력하세요" >
+		        	<input type="hidden" id="address" class="c_info" name="address">
+		        <br><span class="c_infoNames">전화번호</span>
+		        <input type="text" id="telno" class="c_info" name="telno" placeholder="전화번호를 입력하세요.">
+		        <input type="button" id="btn_register" value="사용자 등록" onclick="register()">
+		        <input type="button" id="btn_cancel" value="취소" onclick="history.back()">
+		    </form>
+
+  		</div>
+	</div>
+
+</div>
+
+<br><br>
+</body>
+</html>

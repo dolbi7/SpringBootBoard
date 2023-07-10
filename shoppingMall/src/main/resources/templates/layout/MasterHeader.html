@@ -1,0 +1,15 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<body>
+	<div th:fragment="header">
+		<img class="title_img" src="/images/title2.png"><br>
+		<a href="/master/main?page=1">처음으로</a> |			
+		<a href="/master/main?page=1">상품목록</a> | 
+		<a href="/master/pRegistry">상품등록</a> | 
+		<a href="/master/pOrder?page=1">주문관리</a> | 
+		<a href="/master/pAvenue">매출관리</a> |
+		<a href="/master/pCustomer?page=1">회원관리</a> |
+		<a href="javascript:logout()">로그아웃</a> 
+	</div>
+</body>		
+</html>
